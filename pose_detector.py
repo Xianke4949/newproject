@@ -18,6 +18,9 @@ from mediapipe.tasks.python import BaseOptions
 
 # ── 模型下載 ──────────────────────────────────────────────────────────────────
 
+# 採用 full 模型：骨架較穩、計數較準。FPS 主要靠「相機背景執行緒抓幀」與
+# 「每隔一幀才偵測一次」維持（見 camera_source.py 與 scenes/playing.py），
+# 故即使用 full 也不會回到原本的卡頓。
 _MODEL_FILENAME = "pose_landmarker_full.task"
 _MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), _MODEL_FILENAME)
 _MODEL_URL = (
@@ -68,6 +71,10 @@ class PoseDetector:
       Landmark                  → PoseLandmark enum（同舊版）
     """
 
+    # 姿態偵測用的輸入寬度上限。畫面以原解析度顯示，但送進 MediaPipe 前先縮小，
+    # 大幅降低 CPU 負擔、提升 FPS；landmark 為正規化座標(0~1)，縮放不影響對應。
+    DETECT_WIDTH = 640
+
     def __init__(
         self,
         min_detection_confidence: float = 0.6,
@@ -96,7 +103,15 @@ class PoseDetector:
 
     def process(self, frame: np.ndarray) -> object:
         """處理一幀 BGR 影像，內部更新骨架狀態。"""
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # 偵測前先縮小到 DETECT_WIDTH（保持長寬比），加速 MediaPipe 推論。
+        h, w = frame.shape[:2]
+        if w > self.DETECT_WIDTH:
+            scale = self.DETECT_WIDTH / w
+            small = cv2.resize(frame, (self.DETECT_WIDTH, int(h * scale)),
+                               interpolation=cv2.INTER_AREA)
+        else:
+            small = frame
+        rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
         mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
         # VIDEO mode 要求時間戳嚴格遞增（單位：毫秒）
