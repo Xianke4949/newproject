@@ -118,6 +118,7 @@ class Squat(Exercise):
                 self.stage = "down"
             self.engaged = True
             self.form_feedback = f"✓ 蹲下姿勢良好！({self.angle:.0f}°)"
+            self.form_alert = True 
         elif self.angle > self.UP_ANGLE:
             if self.stage == "down":
                 self.stage = "up"
@@ -129,7 +130,7 @@ class Squat(Exercise):
         else:
             if self.stage == "up":
                 self.form_feedback = f"▼ 繼續蹲深！({self.angle:.0f}°)"
-                self.form_alert = True       # 下蹲但深度不足
+                # self.form_alert = True       # 下蹲但深度不足
                 self.engaged = True
             else:
                 self.form_feedback = f"▲ 起立！({self.angle:.0f}°)"
@@ -176,6 +177,7 @@ class Pushup(Exercise):
                 self.stage = "down"
             self.engaged = True
             self.form_feedback = f"✓ 下壓良好！({self.angle:.0f}°)"
+            self.form_alert = True 
         elif self.angle > self.UP_ANGLE:
             if self.stage == "down":
                 self.stage = "up"
